@@ -10,6 +10,7 @@ add_executable(
     OrderBook.cpp
     PriceLevel.h
     PriceLevel.cpp
+    types.h
     utils.h
     )
 

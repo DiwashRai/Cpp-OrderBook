@@ -7,24 +7,25 @@
 class PriceLevel
 {
 public:
-    PriceLevel(int64_t price)
+    PriceLevel(price_t price)
         : m_price(price),
           m_totalQuantity{0} {};
 
     // getters
-    int64_t getPrice() const { return m_price; }
+    price_t getPrice() const { return m_price; }
     std::size_t getTotalOrders() const { return m_orders.size(); };
-    int64_t getTotalQuantity() const { return m_totalQuantity; };
+    quantity_t getTotalQuantity() const { return m_totalQuantity; };
 
     // methods
-    void addOrder(const Order& order);
+    std::list<Order>::iterator appendOrder(const Order& order);
     const Order& getNextOrder() { return m_orders.front(); };
-    void reduceNextOrderQuantity(int32_t quantityDelta);
+    void reduceNextOrderQuantity(quantity_t quantityDelta);
     void removeNextOrder();
+    void cancelOrder(std::list<Order>::iterator orderIter);
 
 private:
-    int64_t m_price;
-    int64_t m_totalQuantity;
+    price_t m_price;
+    quantity_t m_totalQuantity;
     std::list<Order> m_orders;
 };
 

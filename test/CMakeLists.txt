@@ -16,4 +16,5 @@ add_executable(
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 target_include_directories(tests PRIVATE "../src")
+target_compile_definitions(tests PRIVATE UNIT_TEST)
 

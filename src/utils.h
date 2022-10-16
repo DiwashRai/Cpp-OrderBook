@@ -6,7 +6,7 @@
 
 inline void printOrder(const Order& order)
 {
-    std::cout << "[Order] Price: " << order.getPrice() << " | Quantity: " << order.getCurrentQuantity() << "| Buy Side: " << order.isBuySide() << std::endl;
+    std::cout << "[Order] Price: " << order.getPrice() << " | Quantity: " << order.getCurrentQuantity() << "| Ask Side: " << order.isAsk() << std::endl;
 }
 
 #endif // UTILS_H

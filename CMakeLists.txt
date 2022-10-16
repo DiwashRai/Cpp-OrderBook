@@ -6,4 +6,5 @@ add_compile_options(-W -Wall -Werror)
 
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(quantcup)
 
