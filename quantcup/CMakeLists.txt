@@ -34,4 +34,6 @@ add_executable(
     )
 
 target_compile_definitions(quantcupTests PRIVATE QUANTCUP_TEST)
+target_include_directories(quantcupTests PRIVATE ../src)
+target_include_directories(quantcupScore PRIVATE ../src)
 

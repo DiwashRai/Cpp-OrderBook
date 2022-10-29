@@ -124,7 +124,7 @@ public:
     using OrderBook::OrderBook;
     std::vector<Order> m_executedOrders;
 
-    void executeTrade(const symbol_t& symbol, const trader_t& buyTrader, const trader_t& sellTrader, const price_t& price, const quantity_t& quantity)
+    void executeTrade(const symbol_t& symbol, const trader_t& buyTrader, const trader_t& sellTrader __attribute__((unused)), const price_t& price, const quantity_t& quantity)
     {
         m_executedOrders.emplace_back(symbol, buyTrader, false, price, quantity);
     };

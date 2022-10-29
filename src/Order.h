@@ -25,11 +25,11 @@ public:
     Order(symbol_t symbol, trader_t trader, bool bIsAsk, price_t price, quantity_t quantity, order_id_t orderId)
             : m_symbol{symbol},
               m_trader{trader},
+              m_orderID{orderId},
               m_price{price},
               m_initialQuantity{quantity},
               m_currentQuantity{quantity},
-              m_bIsAsk{bIsAsk},
-              m_orderID{orderId} {}
+              m_bIsAsk{bIsAsk} {}
 
     // Getters
     symbol_t getSymbol() const { return m_symbol; }

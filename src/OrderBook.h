@@ -20,7 +20,8 @@ class OrderBook
 public:
     OrderBook(std::string security)
         : m_security{security},
-          m_currentOrderID{0} {};
+          m_currentOrderID{0},
+          m_currentExecutionID{0} {};
 
     void init();
     void destroy();
@@ -36,6 +37,7 @@ private:
 
     std::string m_security;
     order_id_t m_currentOrderID;
+    order_id_t m_currentExecutionID;
     std::map<price_t, PriceLevel> m_bids;
     std::map<price_t, PriceLevel> m_asks;
     std::unordered_map<order_id_t, std::pair<PriceLevel&, std::list<Order>::iterator>> m_ordersTable;
