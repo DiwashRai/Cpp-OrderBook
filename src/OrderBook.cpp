@@ -7,8 +7,10 @@ void OrderBook::init()
 {
     m_currentOrderID = 0;
     m_bids.clear();
+    m_bids_table.clear();
     m_asks.clear();
-    m_ordersTable.clear();
+    m_asks_table.clear();
+    m_orders_table.clear();
 }
 
 void OrderBook::destroy() {}
@@ -21,7 +23,7 @@ order_id_t OrderBook::addOrder(Order& order)
     ++m_currentOrderID;
     order.setOrderID(m_currentOrderID);
     auto orderIter = it->second.appendOrder(order);
-    m_ordersTable.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+    m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
     return m_currentOrderID;
 }
 
@@ -36,11 +38,11 @@ void OrderBook::printBook() const
                   << std::endl;
     }
     std::cout << "=========== Buy side =============\n";
-    for (auto it = m_bids.begin(); it != m_bids.end(); ++it)
+    for (const auto & m_bid : m_bids)
     {
-        std::cout << "Price: " << it->second.getPrice()
-                  << " - Quantity: " << it->second.getTotalQuantity()
-                  << " - Orders: " << it->second.getTotalOrders()
+        std::cout << "Price: " << m_bid.second.getPrice()
+                  << " - Quantity: " << m_bid.second.getTotalQuantity()
+                  << " - Orders: " << m_bid.second.getTotalOrders()
                   << std::endl;
     }
 }
@@ -49,17 +51,23 @@ void OrderBook::executeTrade(const symbol_t& symbol, const trader_t& buyTrader, 
 {
     // buy side execution report
     execution_t executionReport(symbol, buyTrader, false,price, quantity);
+    //++m_currentExecutionID;
     execution(executionReport);
 
     // sell side execution report
     executionReport.setTrader(sellTrader);
     executionReport.setIsAsk(true);
+    //++m_currentExecutionID;
     execution(executionReport);
 }
 
 #ifndef QUANTCUP_TEST
-void OrderBook::execution(execution_t exec) const
+void OrderBook::execution(execution_t exec __attribute__((unused))) const
 {
+    /*
+    const char* Side = exec.isAsk() ? "BUY " : "SELL";
+    printf("[ORDER EXECUTION]: ID: %lu | Side: %s | Price: $%.2f | Quantity: %ld | Symbol: %s | Trader: %s\n", m_currentExecutionID, Side, exec.getPrice()/100.0, exec.getCurrentQuantity(), exec.getSymbol().cbegin(), exec.getTrader().cbegin());
+    */
 }
 #endif
 
@@ -80,7 +88,7 @@ order_id_t OrderBook::limit(Order& order)
                             order.getTrader(), priceLevel.getPrice(),
                             priceLevel.getNextOrder().getCurrentQuantity());
                     order.reduceQuantity(priceLevel.getNextOrder().getCurrentQuantity());
-                    m_ordersTable.erase(priceLevel.getNextOrder().getOrderID());
+                    m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
                     priceLevel.removeNextOrder();
                 }
                 else
@@ -95,24 +103,40 @@ order_id_t OrderBook::limit(Order& order)
                     }
                     else
                     {
-                        m_ordersTable.erase(priceLevel.getNextOrder().getOrderID());
+                        m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
                         priceLevel.removeNextOrder();
                     }
                     if (priceLevel.getTotalOrders() == 0)
+                    {
+                        m_bids_table.erase((--m_bids.end())->first);
                         m_bids.erase(--m_bids.end());
+                    }
                     return ++m_currentOrderID;
                 }
             }
             // no more orders at price level
+            m_bids_table.erase((--m_bids.end())->first);
             m_bids.erase(--m_bids.end());
         }
-        // no more crosses. Add order to m_asks
-        auto [it, bInserted] = m_asks.emplace(order.getPrice(), PriceLevel(order.getPrice()));
 
+        // no more crosses. Add order to m_asks
         ++m_currentOrderID;
         order.setOrderID(m_currentOrderID);
-        auto orderIter = it->second.appendOrder(order);
-        m_ordersTable.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+        if (m_asks_table.find(order.getPrice()) != m_asks_table.end())
+        {
+            // price level exists. Access it from table and append order
+            auto order_it = m_asks_table.find(order.getPrice())->second.appendOrder(order);
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(m_asks_table.find(order.getPrice())->second, order_it));
+        }
+        else
+        {
+            // insert new price level and append order
+            auto [it, bInserted] = m_asks.emplace(order.getPrice(), PriceLevel(order.getPrice()));
+            auto orderIter = it->second.appendOrder(order);
+
+            m_asks_table.insert(std::make_pair(order.getPrice(), std::ref(it->second)));
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+        }
         return m_currentOrderID;
     }
     else /* buy order */
@@ -129,7 +153,7 @@ order_id_t OrderBook::limit(Order& order)
                             priceLevel.getNextOrder().getTrader(), priceLevel.getPrice(),
                             priceLevel.getNextOrder().getCurrentQuantity());
                     order.reduceQuantity(priceLevel.getNextOrder().getCurrentQuantity());
-                    m_ordersTable.erase(priceLevel.getNextOrder().getOrderID());
+                    m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
                     priceLevel.removeNextOrder();
                 }
                 else
@@ -144,35 +168,51 @@ order_id_t OrderBook::limit(Order& order)
                     }
                     else
                     {
-                        m_ordersTable.erase(priceLevel.getNextOrder().getOrderID());
+                        m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
                         priceLevel.removeNextOrder();
                     }
                     if (priceLevel.getTotalOrders() == 0)
+                    {
+                        m_asks_table.erase(m_asks.begin()->first);
                         m_asks.erase(m_asks.begin());
+                    }
                     return ++m_currentOrderID;
                 }
             }
             // no more orders at price level
+            m_asks_table.erase(m_asks.begin()->first);
             m_asks.erase(m_asks.begin());
         }
         // no more crosses. Add order to m_bids
-        auto [it, bInserted] = m_bids.emplace(order.getPrice(), PriceLevel(order.getPrice()));
-
         ++m_currentOrderID;
         order.setOrderID(m_currentOrderID);
-        auto orderIter = it->second.appendOrder(order);
-        m_ordersTable.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+        if (m_bids_table.find(order.getPrice()) != m_bids_table.end())
+        {
+            // price level exists. Access it from table and append order
+            auto order_it = m_bids_table.find(order.getPrice())->second.appendOrder(order);
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(m_bids_table.find(order.getPrice())->second, order_it));
+        }
+        else
+        {
+            // insert new price level and append order
+            auto [it, bInserted] = m_bids.emplace(order.getPrice(), PriceLevel(order.getPrice()));
+
+            auto orderIter = it->second.appendOrder(order);
+            m_bids_table.insert(std::make_pair(order.getPrice(), std::ref(it->second)));
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+        }
+
         return  m_currentOrderID;
     }
 }
 
 void OrderBook::cancel(order_id_t orderID)
 {
-    auto it = m_ordersTable.find(orderID);
-    if (it == m_ordersTable.end())
+    auto it = m_orders_table.find(orderID);
+    if (it == m_orders_table.end())
         return;
 
     it->second.first.cancelOrder(it->second.second);
-    m_ordersTable.erase(it);
+    m_orders_table.erase(it);
 }
 
