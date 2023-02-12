@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
-//#include "types.h"
-#include "../src/OrderBook.h"
+#include "types.h"
+#include "engine.h"
 #include "score_feed.h"
 
 void feed(unsigned begin, unsigned end);
@@ -25,11 +25,9 @@ int msg_batch_size = 10;
 int replays = 200;
 void execution(t_execution exec) {};
 
-OrderBook orderbook("SYM");
-
 int main() {
     //print_cpuaffinity();
-    int raw_feed_len = sizeof(raw_feed)/sizeof(Order);
+    int raw_feed_len = sizeof(raw_feed)/sizeof(t_order);
     int samples = replays * (raw_feed_len/msg_batch_size);
     long long late[samples]; // batch latency measurements
 
@@ -38,7 +36,7 @@ int main() {
 
     int j;
     for (j = 0; j < replays; j++) {
-    orderbook.init();
+    init();
     int i;
     for (i = msg_batch_size; i < raw_feed_len; i += msg_batch_size) {
         clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
@@ -48,7 +46,7 @@ int main() {
         clock_gettime(CLOCK_MONOTONIC_RAW, &end);
         late[i/msg_batch_size - 1 + (j*(raw_feed_len/msg_batch_size))] = timediff(begin, end);
     }
-    orderbook.destroy();
+    destroy();
     }
 
     long long late_total = 0LL;
@@ -74,10 +72,10 @@ int main() {
 
 void feed(unsigned begin, unsigned end) {
     int i; for(i = begin; i < end; i++) {
-        if (raw_feed[i].getPrice() == 0) {
-            orderbook.cancel(raw_feed[i].getCurrentQuantity());
+        if (raw_feed[i].price == 0) {
+            cancel(raw_feed[i].size);
         } else {
-            orderbook.limit(raw_feed[i]);
+            limit(raw_feed[i]);
         }
     }
 }
