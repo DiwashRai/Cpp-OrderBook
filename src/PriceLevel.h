@@ -3,6 +3,7 @@
 
 #include <list>
 #include "Order.h"
+#include "my_list.h"
 
 class PriceLevel
 {
@@ -17,16 +18,17 @@ public:
     quantity_t getTotalQuantity() const { return m_totalQuantity; };
 
     // methods
-    std::list<Order>::iterator appendOrder(const Order& order);
-    const Order& getNextOrder() { return m_orders.front(); };
+    my::ListNode<Order>* appendOrder(const Order& order);
+    const Order& getNextOrder() { return m_orders.front()->data; };
     void reduceNextOrderQuantity(quantity_t quantityDelta);
     void removeNextOrder();
-    void cancelOrder(std::list<Order>::iterator orderIter);
+    void cancelOrder(my::ListNode<Order>* nodePtr);
 
 private:
     price_t m_price;
     quantity_t m_totalQuantity;
-    std::list<Order> m_orders;
+    //std::list<Order> m_orders;
+    my::DoublyLinkedList<Order> m_orders;
 };
 
 #endif

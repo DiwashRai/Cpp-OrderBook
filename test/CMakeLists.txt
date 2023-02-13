@@ -12,7 +12,9 @@ add_executable(
     ../src/OrderBook.cpp
     ../src/PriceLevel.h
     ../src/PriceLevel.cpp
-    )
+    ../src/hash_table7.hpp
+    ../src/unordered_dense.h
+    ../src/my_list.h)
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 target_include_directories(tests PRIVATE "../src")

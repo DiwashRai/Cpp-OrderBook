@@ -15,18 +15,6 @@ void OrderBook::init()
 
 void OrderBook::destroy() {}
 
-order_id_t OrderBook::addOrder(Order& order)
-{
-    std::map<long, PriceLevel>& priceLevelMap = order.isAsk() ? m_asks : m_bids;
-    auto [it, bInserted] = priceLevelMap.emplace(order.getPrice(), PriceLevel(order.getPrice()));
-
-    ++m_currentOrderID;
-    order.setOrderID(m_currentOrderID);
-    auto orderIter = it->second.appendOrder(order);
-    m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
-    return m_currentOrderID;
-}
-
 void OrderBook::printBook() const
 {
     std::cout << "=========== Sell side =============\n";
@@ -125,17 +113,17 @@ order_id_t OrderBook::limit(Order& order)
         if (m_asks_table.find(order.getPrice()) != m_asks_table.end())
         {
             // price level exists. Access it from table and append order
-            auto order_it = m_asks_table.find(order.getPrice())->second.appendOrder(order);
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(m_asks_table.find(order.getPrice())->second, order_it));
+            auto nodePtr = m_asks_table.find(order.getPrice())->second->appendOrder(order);
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(m_asks_table.find(order.getPrice())->second, nodePtr));
         }
         else
         {
             // insert new price level and append order
             auto [it, bInserted] = m_asks.emplace(order.getPrice(), PriceLevel(order.getPrice()));
-            auto orderIter = it->second.appendOrder(order);
+            auto nodePtr = it->second.appendOrder(order);
 
-            m_asks_table.insert(std::make_pair(order.getPrice(), std::ref(it->second)));
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+            m_asks_table.insert(std::make_pair(order.getPrice(), &(it->second)));
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(&(it->second), nodePtr));
         }
         return m_currentOrderID;
     }
@@ -189,17 +177,17 @@ order_id_t OrderBook::limit(Order& order)
         if (m_bids_table.find(order.getPrice()) != m_bids_table.end())
         {
             // price level exists. Access it from table and append order
-            auto order_it = m_bids_table.find(order.getPrice())->second.appendOrder(order);
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(m_bids_table.find(order.getPrice())->second, order_it));
+            auto nodePtr = m_bids_table.find(order.getPrice())->second->appendOrder(order);
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(m_bids_table.find(order.getPrice())->second, nodePtr));
         }
         else
         {
             // insert new price level and append order
             auto [it, bInserted] = m_bids.emplace(order.getPrice(), PriceLevel(order.getPrice()));
 
-            auto orderIter = it->second.appendOrder(order);
-            m_bids_table.insert(std::make_pair(order.getPrice(), std::ref(it->second)));
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel&, std::list<Order>::iterator>(it->second, orderIter));
+            auto nodePtr = it->second.appendOrder(order);
+            m_bids_table.insert(std::make_pair(order.getPrice(), &(it->second)));
+            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(&(it->second), nodePtr));
         }
 
         return  m_currentOrderID;
@@ -212,7 +200,7 @@ void OrderBook::cancel(order_id_t orderID)
     if (it == m_orders_table.end())
         return;
 
-    it->second.first.cancelOrder(it->second.second);
+    it->second.first->cancelOrder(it->second.second);
     m_orders_table.erase(it);
 }
 

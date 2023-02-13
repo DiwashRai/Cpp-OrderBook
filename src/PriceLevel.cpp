@@ -1,27 +1,27 @@
 
 #include "PriceLevel.h"
 
-std::list<Order>::iterator PriceLevel::appendOrder(const Order& order)
+my::ListNode<Order>* PriceLevel::appendOrder(const Order& order)
 {
     m_totalQuantity += order.getCurrentQuantity();
-    m_orders.emplace_back(order);
-    return std::prev(m_orders.end());
+    m_orders.insert(order);
+    return m_orders.back();
 }
 
 void PriceLevel::removeNextOrder()
 {
-    m_totalQuantity -= m_orders.front().getCurrentQuantity();
+    m_totalQuantity -= m_orders.front()->data.getCurrentQuantity();
     m_orders.pop_front();
 }
 
 void PriceLevel::reduceNextOrderQuantity(quantity_t quantityDelta)
 {
-    m_orders.front().reduceQuantity(quantityDelta);
+    m_orders.front()->data.reduceQuantity(quantityDelta);
     m_totalQuantity -= quantityDelta;
 }
 
-void PriceLevel::cancelOrder(std::list<Order>::iterator orderIter)
+void PriceLevel::cancelOrder(my::ListNode<Order>* nodePtr)
 {
-    m_totalQuantity -= orderIter->getCurrentQuantity();
-    m_orders.erase(orderIter);
+    m_totalQuantity -= nodePtr->data.getCurrentQuantity();
+    m_orders.erase(nodePtr);
 }

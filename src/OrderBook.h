@@ -4,6 +4,9 @@
 #include <set>
 #include <map>
 #include <unordered_map>
+#include <hash_table7.hpp>
+#include <unordered_dense.h>
+#include "my_list.h"
 #include <string>
 
 #include "Order.h"
@@ -39,10 +42,13 @@ private:
     order_id_t m_currentOrderID;
     //order_id_t m_currentExecutionID;
     std::map<price_t, PriceLevel> m_bids;
-    std::unordered_map<price_t, PriceLevel&> m_bids_table;
+    //std::unordered_map<price_t, PriceLevel&> m_bids_table;
+    emhash7::HashMap<price_t, PriceLevel*, ankerl::unordered_dense::hash<price_t, PriceLevel*>> m_bids_table;
     std::map<price_t, PriceLevel> m_asks;
-    std::unordered_map<price_t, PriceLevel&> m_asks_table;
-    std::unordered_map<order_id_t, std::pair<PriceLevel&, std::list<Order>::iterator>> m_orders_table;
+    //std::unordered_map<price_t, PriceLevel&> m_asks_table;
+    emhash7::HashMap<price_t, PriceLevel*, ankerl::unordered_dense::hash<price_t, PriceLevel*>> m_asks_table;
+    //std::unordered_map<order_id_t, std::pair<PriceLevel*, std::list<Order>::iterator>> m_orders_table;
+    emhash7::HashMap<order_id_t, std::pair<PriceLevel*, my::ListNode<Order>*>, ankerl::unordered_dense::hash<order_id_t, std::pair<PriceLevel*, my::ListNode<Order>*>>> m_orders_table;
 };
 
 #endif //ORDERBOOK_H

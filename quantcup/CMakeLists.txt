@@ -20,7 +20,9 @@ add_executable(
     ../src/OrderBook.cpp
     ../src/PriceLevel.h
     ../src/PriceLevel.cpp
-    )
+    ../src/hash_table7.hpp
+    ../src/unordered_dense.h
+    ../src/my_list.h)
 
 add_executable(
     quantcupScore
@@ -31,7 +33,9 @@ add_executable(
     ../src/OrderBook.cpp
     ../src/PriceLevel.h
     ../src/PriceLevel.cpp
-    )
+    ../src/hash_table7.hpp
+    ../src/unordered_dense.h
+    ../src/my_list.h)
 
 target_compile_definitions(quantcupTests PRIVATE QUANTCUP_TEST)
 target_include_directories(quantcupTests PRIVATE ../src)
