@@ -18,15 +18,15 @@ The engine is bottlenecked by the speed of the console output in the gif.
 
 ## Performance
 
-The score that the winning quantcup implementation gets on my machine (ryzen 3600 cpu) is the following:
+The score that the winning quantcup implementation gets on my machine (ryzen 5600 cpu) is the following:
 ```
-mean(latency) = 117.76, sd(latency) = 91.94
-You scored 104.85. Try to minimize this.
+mean(latency) = 160.45, sd(latency) = 81.30
+You scored 120.88. Try to minimize this.
 ```
 The score that my first implementation gets on the same machine is the following:
 ```
-mean(latency) = 289.34, sd(latency) = 162.10
-You scored 225.72. Try to minimize this.
+mean(latency) = 250.93, sd(latency) = 164.30
+You scored 207.62. Try to minimize this.
 ```
 
 ## Notes/Summary
