@@ -1,56 +1,45 @@
 
-#include <iostream>
+#include <cstring>
+#include "utils.h"
+
 #include "OrderBook.h"
-#include "types.h"
 
 void OrderBook::init()
 {
-    m_currentOrderID = 0;
-    m_bids.clear();
-    m_bids_table.clear();
-    m_asks.clear();
-    m_asks_table.clear();
-    m_orders_table.clear();
+    m_current_order_id = 0;
+    m_ask_min = MAX_PRICE + 1;
+    m_bid_max = MIN_PRICE -1;
+    std::memset(m_price_levels.data(), 0, sizeof(PriceLevel) * (MAX_PRICE + 1));
+    std::memset(m_orders.data(), 0, sizeof(OrderEntry) * 1'010'000);
 }
 
 void OrderBook::destroy() {}
 
-void OrderBook::printBook() const
+void OrderBook::executeTrade(const char* symbol,
+                             const char* buyTrader,
+                             const char* sellTrader,
+                             const t_price& tradePrice,
+                             const t_size& tradeSize)
 {
-    std::cout << "=========== Sell side =============\n";
-    for (auto it = m_asks.rbegin(); it != m_asks.rend(); ++it)
-    {
-        std::cout << "Price: " << it->second.getPrice()
-                  << " - Quantity: " << it->second.getTotalQuantity()
-                  << " - Orders: " << it->second.getTotalOrders()
-                  << std::endl;
-    }
-    std::cout << "=========== Buy side =============\n";
-    for (const auto & m_bid : m_bids)
-    {
-        std::cout << "Price: " << m_bid.second.getPrice()
-                  << " - Quantity: " << m_bid.second.getTotalQuantity()
-                  << " - Orders: " << m_bid.second.getTotalOrders()
-                  << std::endl;
-    }
-}
+    if (tradeSize == 0)
+        return;
 
-void OrderBook::executeTrade(const symbol_t& symbol, const trader_t& buyTrader, const trader_t& sellTrader, const price_t& price, const quantity_t& quantity)
-{
-    // buy side execution report
-    execution_t executionReport(symbol, buyTrader, false,price, quantity);
-    //++m_currentExecutionID;
+    t_execution executionReport;
+    COPY_STRING(executionReport.symbol, symbol);
+    executionReport.price = tradePrice;
+    executionReport.size = tradeSize;
+
+    executionReport.side = Bid;
+    COPY_STRING(executionReport.trader, buyTrader);
     execution(executionReport);
 
-    // sell side execution report
-    executionReport.setTrader(sellTrader);
-    executionReport.setIsAsk(true);
-    //++m_currentExecutionID;
+    executionReport.side = Ask;
+    COPY_STRING(executionReport.trader, sellTrader);
     execution(executionReport);
 }
 
 #ifndef QUANTCUP_TEST
-void OrderBook::execution(execution_t exec __attribute__((unused))) const
+void OrderBook::execution(t_execution exec __attribute__((unused))) const
 {
     /*
     const char* Side = exec.isAsk() ? "BUY " : "SELL";
@@ -59,148 +48,95 @@ void OrderBook::execution(execution_t exec __attribute__((unused))) const
 }
 #endif
 
-order_id_t OrderBook::limit(Order& order)
+t_orderid OrderBook::limit(t_order& order)
 {
-    if (order.isAsk()) /* sell order */
+    if (order.side == Bid)
     {
-        // check if sell order crosses with existing buy orders
-        while (!m_bids.empty() && m_bids.rbegin()->first >= order.getPrice())
+        // check bid price crosses ask price
+        if (order.price >= m_ask_min)
         {
-            PriceLevel& priceLevel = m_bids.rbegin()->second;
-            while (priceLevel.getTotalOrders() > 0)
+            PriceLevel* pPriceLevel = &m_price_levels[m_ask_min];
+            while (order.price >= m_ask_min)
             {
-                if (order.getCurrentQuantity() > priceLevel.getNextOrder().getCurrentQuantity())
+                OrderEntry* pCurrOrderEntry = pPriceLevel->m_head;
+                while (pCurrOrderEntry != nullptr)
                 {
-                    // incoming sell order quantity greater than next bid quantity at price level
-                    executeTrade(order.getSymbol(), priceLevel.getNextOrder().getTrader(),
-                            order.getTrader(), priceLevel.getPrice(),
-                            priceLevel.getNextOrder().getCurrentQuantity());
-                    order.reduceQuantity(priceLevel.getNextOrder().getCurrentQuantity());
-                    m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
-                    priceLevel.removeNextOrder();
+                    if (pCurrOrderEntry->m_size >= order.size)
+                    {
+                        executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_ask_min, order.size);
+                        if (pCurrOrderEntry->m_size > order.size)
+                            pCurrOrderEntry->m_size -= order.size;
+                        else
+                            pCurrOrderEntry = pCurrOrderEntry->m_next;
+
+                        pPriceLevel->m_head = pCurrOrderEntry;
+                        return ++m_current_order_id;
+                    }
+                    executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_ask_min, pCurrOrderEntry->m_size);
+                    order.size -= pCurrOrderEntry->m_size;
+                    pCurrOrderEntry->m_size = 0;
+                    pCurrOrderEntry = pCurrOrderEntry->m_next;
                 }
-                else
-                {
-                    // incoming sell order quantity less than next bid quantity at price level
-                    executeTrade(order.getSymbol(), priceLevel.getNextOrder().getTrader(),
-                            order.getTrader(), priceLevel.getPrice(),
-                            order.getCurrentQuantity());
-                    if (priceLevel.getNextOrder().getCurrentQuantity() > order.getCurrentQuantity())
-                    {
-                        priceLevel.reduceNextOrderQuantity(order.getCurrentQuantity());
-                    }
-                    else
-                    {
-                        m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
-                        priceLevel.removeNextOrder();
-                    }
-                    if (priceLevel.getTotalOrders() == 0)
-                    {
-                        m_bids_table.erase((--m_bids.end())->first);
-                        m_bids.erase(--m_bids.end());
-                    }
-                    return ++m_currentOrderID;
-                }
+                pPriceLevel->m_head = nullptr;
+                ++m_ask_min;
+                ++pPriceLevel;
             }
-            // no more orders at price level
-            m_bids_table.erase((--m_bids.end())->first);
-            m_bids.erase(--m_bids.end());
         }
 
-        // no more crosses. Add order to m_asks
-        ++m_currentOrderID;
-        order.setOrderID(m_currentOrderID);
-        if (m_asks_table.find(order.getPrice()) != m_asks_table.end())
-        {
-            // price level exists. Access it from table and append order
-            auto nodePtr = m_asks_table.find(order.getPrice())->second->appendOrder(order);
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(m_asks_table.find(order.getPrice())->second, nodePtr));
-        }
-        else
-        {
-            // insert new price level and append order
-            auto [it, bInserted] = m_asks.emplace(order.getPrice(), PriceLevel(order.getPrice()));
-            auto nodePtr = it->second.appendOrder(order);
-
-            m_asks_table.insert(std::make_pair(order.getPrice(), &(it->second)));
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(&(it->second), nodePtr));
-        }
-        return m_currentOrderID;
+        // add order to bid side
+        OrderEntry* pNewOrderEntry = &m_orders[++m_current_order_id];
+        pNewOrderEntry->m_size = order.size;
+        COPY_STRING(pNewOrderEntry->m_trader, order.trader);
+        m_price_levels[order.price].insert(pNewOrderEntry);
+        if (order.price > m_bid_max)
+            m_bid_max = order.price;
+        return m_current_order_id;
     }
-    else /* buy order */
+    else
     {
-        while (!m_asks.empty() && m_asks.begin()->first <= order.getPrice())
+        // check ask price crosses bid price
+        if (order.price <= m_bid_max)
         {
-            PriceLevel& priceLevel = m_asks.begin()->second;
-            while(priceLevel.getTotalOrders() > 0)
+            PriceLevel* pPriceLevel = &m_price_levels[m_bid_max];
+            while (order.price <= m_bid_max)
             {
-                if (order.getCurrentQuantity() > priceLevel.getNextOrder().getCurrentQuantity())
+                OrderEntry* pCurrOrderEntry = pPriceLevel->m_head;
+                while (pCurrOrderEntry != nullptr)
                 {
-                    // incoming buy order quantity greater than next ask quantity in current price level
-                    executeTrade(order.getSymbol(), order.getTrader(),
-                            priceLevel.getNextOrder().getTrader(), priceLevel.getPrice(),
-                            priceLevel.getNextOrder().getCurrentQuantity());
-                    order.reduceQuantity(priceLevel.getNextOrder().getCurrentQuantity());
-                    m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
-                    priceLevel.removeNextOrder();
+                    if (pCurrOrderEntry->m_size >= order.size)
+                    {
+                        executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_bid_max, order.size);
+                        if (pCurrOrderEntry->m_size > order.size)
+                            pCurrOrderEntry->m_size -= order.size;
+                        else
+                            pCurrOrderEntry = pCurrOrderEntry->m_next;
+
+                        pPriceLevel->m_head = pCurrOrderEntry;
+                        return ++m_current_order_id;
+                    }
+                    executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_bid_max, pCurrOrderEntry->m_size);
+                    order.size -= pCurrOrderEntry->m_size;
+                    pCurrOrderEntry->m_size = 0;
+                    pCurrOrderEntry = pCurrOrderEntry->m_next;
                 }
-                else
-                {
-                    // incoming buy order quantity less than or equal to next ask quantity in current price level
-                    executeTrade(order.getSymbol(), order.getTrader(),
-                            priceLevel.getNextOrder().getTrader(), priceLevel.getPrice(),
-                            order.getCurrentQuantity());
-                    if (priceLevel.getNextOrder().getCurrentQuantity() > order.getCurrentQuantity())
-                    {
-                        priceLevel.reduceNextOrderQuantity(order.getCurrentQuantity());
-                    }
-                    else
-                    {
-                        m_orders_table.erase(priceLevel.getNextOrder().getOrderID());
-                        priceLevel.removeNextOrder();
-                    }
-                    if (priceLevel.getTotalOrders() == 0)
-                    {
-                        m_asks_table.erase(m_asks.begin()->first);
-                        m_asks.erase(m_asks.begin());
-                    }
-                    return ++m_currentOrderID;
-                }
+                pPriceLevel->m_head = nullptr;
+                --m_bid_max;
+                --pPriceLevel;
             }
-            // no more orders at price level
-            m_asks_table.erase(m_asks.begin()->first);
-            m_asks.erase(m_asks.begin());
-        }
-        // no more crosses. Add order to m_bids
-        ++m_currentOrderID;
-        order.setOrderID(m_currentOrderID);
-        if (m_bids_table.find(order.getPrice()) != m_bids_table.end())
-        {
-            // price level exists. Access it from table and append order
-            auto nodePtr = m_bids_table.find(order.getPrice())->second->appendOrder(order);
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(m_bids_table.find(order.getPrice())->second, nodePtr));
-        }
-        else
-        {
-            // insert new price level and append order
-            auto [it, bInserted] = m_bids.emplace(order.getPrice(), PriceLevel(order.getPrice()));
-
-            auto nodePtr = it->second.appendOrder(order);
-            m_bids_table.insert(std::make_pair(order.getPrice(), &(it->second)));
-            m_orders_table.emplace(m_currentOrderID, std::pair<PriceLevel*, my::ListNode<Order>*>(&(it->second), nodePtr));
         }
 
-        return  m_currentOrderID;
+        // add order to ask side
+        OrderEntry* pNewOrderEntry = &m_orders[++m_current_order_id];
+        pNewOrderEntry->m_size = order.size;
+        COPY_STRING(pNewOrderEntry->m_trader, order.trader);
+        m_price_levels[order.price].insert(pNewOrderEntry);
+        if (order.price > m_ask_min)
+            m_ask_min = order.price;
+        return m_current_order_id;
     }
 }
 
-void OrderBook::cancel(order_id_t orderID)
+void OrderBook::cancel(t_orderid orderID)
 {
-    auto it = m_orders_table.find(orderID);
-    if (it == m_orders_table.end())
-        return;
-
-    it->second.first->cancelOrder(it->second.second);
-    m_orders_table.erase(it);
+    m_orders[orderID].m_size = 0;
 }
-

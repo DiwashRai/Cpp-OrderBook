@@ -4,5 +4,4 @@ project(Cpp-OrderBook)
 set(CMAKE_CXX_STANDARD 17)
 add_compile_options(-W -Wall)
 
-add_subdirectory(test)
 add_subdirectory(quantcup)

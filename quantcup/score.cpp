@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
-//#include "types.h"
 #include "../src/OrderBook.h"
+#include "../src/OrderEntry.h"
 #include "score_feed.h"
 
 void feed(unsigned begin, unsigned end);
@@ -25,11 +25,11 @@ int msg_batch_size = 10;
 int replays = 200;
 void execution(t_execution exec) {};
 
-OrderBook orderbook("SYM");
+OrderBook orderbook;
 
 int main() {
     //print_cpuaffinity();
-    int raw_feed_len = sizeof(raw_feed)/sizeof(Order);
+    int raw_feed_len = sizeof(raw_feed)/sizeof(t_order);
     int samples = replays * (raw_feed_len/msg_batch_size);
     long long late[samples]; // batch latency measurements
 
@@ -74,8 +74,8 @@ int main() {
 
 void feed(unsigned begin, unsigned end) {
     int i; for(i = begin; i < end; i++) {
-        if (raw_feed[i].getPrice() == 0) {
-            orderbook.cancel(raw_feed[i].getCurrentQuantity());
+        if (raw_feed[i].price == 0) {
+            orderbook.cancel(raw_feed[i].size);
         } else {
             orderbook.limit(raw_feed[i]);
         }

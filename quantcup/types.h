@@ -20,6 +20,8 @@ typedef unsigned long t_size;
 /* Side
    Ask=1, Bid=0 */
 typedef int t_side;
+constexpr t_side Ask = 1;
+constexpr t_side Bid = 0;
 
 /* Limit Order */
 typedef struct {
@@ -34,8 +36,5 @@ typedef struct {
    send one per opposite-sided order
    completely filled */
 typedef t_order t_execution;
-
-
-
 
 #endif // TYPES_H_

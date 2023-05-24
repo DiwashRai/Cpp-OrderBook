@@ -1,34 +1,21 @@
 #ifndef PRICELEVEL_H
 #define PRICELEVEL_H
 
-#include <list>
-#include "Order.h"
-#include "my_list.h"
+#include "OrderEntry.h"
 
-class PriceLevel
+struct PriceLevel
 {
-public:
-    PriceLevel(price_t price)
-        : m_price(price),
-          m_totalQuantity{0} {};
+    void insert(OrderEntry* order)
+    {
+        if (m_head)
+            m_tail->m_next = order;
+        else
+            m_head = order;
+        m_tail = order;
+    }
 
-    // getters
-    price_t getPrice() const { return m_price; }
-    std::size_t getTotalOrders() const { return m_orders.size(); };
-    quantity_t getTotalQuantity() const { return m_totalQuantity; };
-
-    // methods
-    my::ListNode<Order>* appendOrder(const Order& order);
-    const Order& getNextOrder() { return m_orders.front()->data; };
-    void reduceNextOrderQuantity(quantity_t quantityDelta);
-    void removeNextOrder();
-    void cancelOrder(my::ListNode<Order>* nodePtr);
-
-private:
-    price_t m_price;
-    quantity_t m_totalQuantity;
-    //std::list<Order> m_orders;
-    my::DoublyLinkedList<Order> m_orders;
+    OrderEntry* m_head = nullptr;
+    OrderEntry* m_tail = nullptr;
 };
 
 #endif

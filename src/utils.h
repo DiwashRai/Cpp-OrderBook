@@ -1,12 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <iostream>
-#include "Order.h"
+#include "OrderEntry.h"
 
-inline void printOrder(const Order& order)
+inline void COPY_STRING(char* dest, const char* src)
 {
-    std::cout << "[Order] Price: " << order.getPrice() << " | Quantity: " << order.getCurrentQuantity() << "| Ask Side: " << order.isAsk() << std::endl;
+    std::memcpy(dest, src, 4);
 }
 
 #endif // UTILS_H

@@ -2,53 +2,36 @@
 #define ORDERBOOK_H
 
 #include <set>
-#include <map>
-#include <unordered_map>
-#include <hash_table7.hpp>
-#include <unordered_dense.h>
-#include "my_list.h"
+#include <array>
 #include <string>
 
-#include "Order.h"
+#include "../quantcup/limits.h"
+#include "../quantcup/types.h"
+#include "OrderEntry.h"
 #include "PriceLevel.h"
-
-#ifdef UNIT_TEST
-#define VIRTUAL virtual
-#else
-#define VIRTUAL
-#endif
 
 class OrderBook
 {
 public:
-    OrderBook(std::string security)
-        : m_security{security},
-          m_currentOrderID{0} {}
-          // m_currentExecutionID{0} {};
-
     void init();
     void destroy();
 
-    order_id_t limit(Order& order);
-    void cancel(order_id_t orderID);
-    order_id_t addOrder(Order& order);
-    void printBook() const;
+    t_orderid limit(t_order& order);
+    void cancel(t_orderid orderID);
 
 private:
-    VIRTUAL void executeTrade(const symbol_t& symbol, const trader_t& buyTrader, const trader_t& sellTrader, const price_t& price, const quantity_t& quantity);
-    void execution(execution_t exec) const;
+    void executeTrade(const char* symbol,
+                              const char* buyTrader,
+                              const char* sellTrader,
+                              const t_price& tradePrice,
+                              const t_size& tradeSize);
+    void execution(t_execution exec) const;
 
-    std::string m_security;
-    order_id_t m_currentOrderID;
-    //order_id_t m_currentExecutionID;
-    std::map<price_t, PriceLevel> m_bids;
-    //std::unordered_map<price_t, PriceLevel&> m_bids_table;
-    emhash7::HashMap<price_t, PriceLevel*, ankerl::unordered_dense::hash<price_t, PriceLevel*>> m_bids_table;
-    std::map<price_t, PriceLevel> m_asks;
-    //std::unordered_map<price_t, PriceLevel&> m_asks_table;
-    emhash7::HashMap<price_t, PriceLevel*, ankerl::unordered_dense::hash<price_t, PriceLevel*>> m_asks_table;
-    //std::unordered_map<order_id_t, std::pair<PriceLevel*, std::list<Order>::iterator>> m_orders_table;
-    emhash7::HashMap<order_id_t, std::pair<PriceLevel*, my::ListNode<Order>*>, ankerl::unordered_dense::hash<order_id_t, std::pair<PriceLevel*, my::ListNode<Order>*>>> m_orders_table;
+    t_orderid m_current_order_id = 0;
+    t_price m_ask_min = MAX_PRICE + 1;
+    t_price m_bid_max = MIN_PRICE - 1;
+    std::array<PriceLevel, MAX_PRICE + 1> m_price_levels;
+    std::array<OrderEntry, 1'010'000> m_orders;
 };
 
 #endif //ORDERBOOK_H

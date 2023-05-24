@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include "limits.h"
 #include "types.h"
-#include "../src/Order.h"
 #include "../src/OrderBook.h"
 
 /* Besides crashing, the only way to sense
@@ -15,38 +14,38 @@
    multiple bits of base functionality
    in limit, cancel, and execution to even
    get to the most basic nontrivial tests. */
-int test(Order orders[], unsigned orders_len, execution_t execs[], unsigned execs_len);
-int test_cancel(Order orders1[], unsigned orders1_len, t_orderid cancels[], unsigned cancels_len, Order orders2[], unsigned orders2_len, execution_t execs[], unsigned execs_len);
+int test(t_order orders[], unsigned orders_len, t_execution execs[], unsigned execs_len);
+int test_cancel(t_order orders1[], unsigned orders1_len, t_orderid cancels[], unsigned cancels_len, t_order orders2[], unsigned orders2_len, t_execution execs[], unsigned execs_len);
 
-#define TEST(num, orders, execs) Order o ## num [] = orders ; execution_t x ## num [] = execs ; correct += test( o ## num , sizeof( o ## num )/sizeof(Order) , x ## num , sizeof( x ## num )/sizeof(execution_t));
-#define TEST_CANCEL(num, orders1, cancels, orders2, execs) Order o1st ## num [] = orders1 ; t_orderid c ## num [] = cancels ; Order o2nd ## num [] = orders2 ; execution_t x ## num [] = execs ; correct += test_cancel( o1st ## num , sizeof( o1st ## num )/sizeof(Order), c ## num , sizeof( c ## num )/sizeof(t_orderid), o2nd ## num , sizeof( o2nd ## num )/sizeof(Order) , x ## num, sizeof( x ## num )/sizeof(execution_t));
+#define TEST(num, orders, execs) t_order o ## num [] = orders ; t_execution x ## num [] = execs ; correct += test( o ## num , sizeof( o ## num )/sizeof(t_order) , x ## num , sizeof( x ## num )/sizeof(t_execution));
+#define TEST_CANCEL(num, orders1, cancels, orders2, execs) t_order o1st ## num [] = orders1 ; t_orderid c ## num [] = cancels ; t_order o2nd ## num [] = orders2 ; t_execution x ## num [] = execs ; correct += test_cancel( o1st ## num , sizeof( o1st ## num )/sizeof(t_order), c ## num , sizeof( c ## num )/sizeof(t_orderid), o2nd ## num , sizeof( o2nd ## num )/sizeof(t_order) , x ## num, sizeof( x ## num )/sizeof(t_execution));
 #define X ,
 #define MAX_EXECS 100
 unsigned correct = 0;
 t_orderid orderid;
 unsigned totaltests = 0;
-execution_t execs_out[MAX_EXECS];
-execution_t * execs_out_iter;
+t_execution execs_out[MAX_EXECS];
+t_execution * execs_out_iter;
 unsigned execs_out_len;
 int exec_overflow;
 
-Order oa101x100({"JPM"}, {"MAX"}, 1, 101, 100);
-Order ob101x100({"JPM"}, {"MAX"}, 0, 101, 100);
-Order oa101x50({"JPM"}, {"MAX"}, 1, 101, 50);
-Order ob101x50({"JPM"}, {"MAX"}, 0, 101, 50);
-Order oa101x25({"JPM"}, {"MAX"}, 1, 101, 25);
-Order ob101x25({"JPM"}, {"MAX"}, 0, 101, 25);
-Order ob101x25x({"JPM"}, {"XAM"}, 0, 101, 25);
+t_order oa101x100{"JPM", "MAX", 1, 101, 100};
+t_order ob101x100{"JPM", "MAX", 0, 101, 100};
+t_order oa101x50{"JPM", "MAX", 1, 101, 50};
+t_order ob101x50{"JPM", "MAX", 0, 101, 50};
+t_order oa101x25{"JPM", "MAX", 1, 101, 25};
+t_order ob101x25{"JPM", "MAX", 0, 101, 25};
+t_order ob101x25x{"JPM", "XAM", 0, 101, 25};
 
-execution_t xa101x100({"JPM"},{"MAX"}, 1, 101, 100);
-execution_t xb101x100({"JPM"},{"MAX"}, 0, 101, 100);
-execution_t xa101x50({"JPM"},{"MAX"}, 1, 101, 50);
-execution_t xb101x50({"JPM"},{"MAX"}, 0, 101, 50);
-execution_t xa101x25({"JPM"},{"MAX"}, 1, 101, 25);
-execution_t xb101x25({"JPM"},{"MAX"}, 0, 101, 25);
-execution_t xb101x25x({"JPM"},{"MAX"}, 0, 101, 25);
+t_execution xa101x100{"JPM","MAX", 1, 101, 100};
+t_execution xb101x100{"JPM","MAX", 0, 101, 100};
+t_execution xa101x50{"JPM","MAX", 1, 101, 50};
+t_execution xb101x50{"JPM","MAX", 0, 101, 50};
+t_execution xa101x25{"JPM","MAX", 1, 101, 25};
+t_execution xb101x25{"JPM","MAX", 0, 101, 25};
+t_execution xb101x25x{"JPM","MAX", 0, 101, 25};
 
-OrderBook orderbook("JPM");
+OrderBook orderbook;
 
 int main() {
   printf("ECN Matching Engine Autotester Running\n"
@@ -89,7 +88,7 @@ int main() {
 }
 
 
-void OrderBook::execution(execution_t exec) const
+void OrderBook::execution(t_execution exec) const
 {
   execs_out_len++;
   if (exec_overflow || (execs_out_iter == &execs_out[MAX_EXECS])) {
@@ -107,7 +106,7 @@ void set_globals() {
   execs_out_len = 0;
 }
 
-int feed_orders(Order orders[], unsigned orders_len) {
+int feed_orders(t_order orders[], unsigned orders_len) {
   int id;
   unsigned i;
   for(i = 0; i < orders_len; i++) {
@@ -144,23 +143,23 @@ int assert_exec_count(unsigned num_execs_expected) {
   return correct;
 }
 
-int exec_eq(execution_t * e1, execution_t * e2) {
+int exec_eq(t_execution * e1, t_execution * e2) {
   int eq = 1;
   int i;
   for (i = 0; i < STRINGLEN; i++) {
-    if (e1->getSymbol()[i] == '\0' && e2->getSymbol()[i] == '\0') break;
+    if (e1->symbol[i] == '\0' && e2->symbol[i] == '\0') break;
     eq = eq &&
-      e1->getSymbol()[i] == e2->getSymbol()[i] &&
-      e1->getSymbol()[i] == e2->getSymbol()[i];
+      e1->symbol[i] == e2->symbol[i] &&
+      e1->symbol[i] == e2->symbol[i];
   }
   eq = eq &&
-    e1->isAsk() == e2->isAsk() &&
-    e1->getPrice() == e2->getPrice() &&
-    e1->getCurrentQuantity() == e2->getCurrentQuantity();
+    e1->side == e2->side &&
+    e1->price == e2->price &&
+    e1->size == e2->size;
   return eq;
 }
 
-int assert_execs(execution_t execs[], unsigned execs_len) {
+int assert_execs(t_execution execs[], unsigned execs_len) {
   unsigned i;
   for(i = 0; i < execs_len; i+=2) {
     if(!((exec_eq(&execs[i], &execs_out[i]) &&
@@ -175,10 +174,10 @@ int assert_execs(execution_t execs[], unsigned execs_len) {
 	     "{symbol=%s, trader=%s, side=%i, price=%ld, quantity=%ld}.\n"
 	     "Stopped there.\n",
 	     i, i+1,
-	     execs_out[i].getSymbol().begin(), execs_out[i].getTrader().begin(), execs_out[i].isAsk(), execs_out[i].getPrice(), execs_out[i].getCurrentQuantity(),
-	     execs_out[i+1].getSymbol().begin(), execs_out[i+1].getTrader().begin(), execs_out[i+1].isAsk(), execs_out[i+1].getPrice(), execs_out[i+1].getCurrentQuantity(),
-	     execs[i].getSymbol().begin(), execs[i].getTrader().begin(), execs[i].isAsk(), execs[i].getPrice(), execs[i].getCurrentQuantity(),
-	     execs[i+1].getSymbol().begin(), execs[i+1].getTrader().begin(), execs[i+1].isAsk(), execs[i+1].getPrice(), execs[i+1].getCurrentQuantity());
+	     execs_out[i].symbol, execs_out[i].trader, execs_out[i].side, execs_out[i].price, execs_out[i].size,
+	     execs_out[i+1].symbol, execs_out[i+1].trader, execs_out[i+1].side, execs_out[i+1].price, execs_out[i+1].size,
+	     execs[i].symbol, execs[i].trader, execs[i].side, execs[i].price, execs[i].size,
+	     execs[i+1].symbol, execs[i+1].trader, execs[i+1].side, execs[i+1].price, execs[i+1].size);
       return 0;
     }
   }
@@ -187,7 +186,7 @@ int assert_execs(execution_t execs[], unsigned execs_len) {
 
 /* IN: orders: sequence of orders
    OUT: points received on test */
-int test(Order orders[], unsigned orders_len, execution_t execs[], unsigned execs_len) {
+int test(t_order orders[], unsigned orders_len, t_execution execs[], unsigned execs_len) {
   int ok = 1;
   set_globals();
   orderbook.init();
@@ -201,7 +200,7 @@ int test(Order orders[], unsigned orders_len, execution_t execs[], unsigned exec
 
 /* IN: orders: sequence of orders
    OUT: points received on test */
-int test_cancel(Order orders1[], unsigned orders1_len, t_orderid cancels[], unsigned cancels_len, Order orders2[], unsigned orders2_len, execution_t execs[], unsigned execs_len) {
+int test_cancel(t_order orders1[], unsigned orders1_len, t_orderid cancels[], unsigned cancels_len, t_order orders2[], unsigned orders2_len, t_execution execs[], unsigned execs_len) {
   int ok = 1;
   set_globals();
   orderbook.init();
