@@ -1,6 +1,6 @@
 
-#include <cstring>
 #include "utils.h"
+#include <cstring>
 
 #include "OrderBook.h"
 
@@ -8,18 +8,17 @@ void OrderBook::init()
 {
     m_current_order_id = 0;
     m_ask_min = MAX_PRICE + 1;
-    m_bid_max = MIN_PRICE -1;
+    m_bid_max = MIN_PRICE - 1;
     std::memset(m_price_levels.data(), 0, sizeof(PriceLevel) * (MAX_PRICE + 1));
     std::memset(m_orders.data(), 0, sizeof(OrderEntry) * 1'010'000);
 }
 
-void OrderBook::destroy() {}
+void OrderBook::destroy()
+{
+}
 
-void OrderBook::executeTrade(const char* symbol,
-                             const char* buyTrader,
-                             const char* sellTrader,
-                             const t_price& tradePrice,
-                             const t_size& tradeSize)
+void OrderBook::executeTrade(const char* symbol, const char* buyTrader, const char* sellTrader,
+                             const t_price& tradePrice, const t_size& tradeSize)
 {
     if (tradeSize == 0)
         return;
@@ -43,7 +42,9 @@ void OrderBook::execution(t_execution exec __attribute__((unused))) const
 {
     /*
     const char* Side = exec.isAsk() ? "BUY " : "SELL";
-    printf("[ORDER EXECUTION]: ID: %lu | Side: %s | Price: $%.2f | Quantity: %ld | Symbol: %s | Trader: %s\n", m_currentExecutionID, Side, exec.getPrice()/100.0, exec.getCurrentQuantity(), exec.getSymbol().cbegin(), exec.getTrader().cbegin());
+    printf("[ORDER EXECUTION]: ID: %lu | Side: %s | Price: $%.2f | Quantity: %ld | Symbol: %s | Trader: %s\n",
+    m_currentExecutionID, Side, exec.getPrice()/100.0, exec.getCurrentQuantity(), exec.getSymbol().cbegin(),
+    exec.getTrader().cbegin());
     */
 }
 #endif
@@ -72,7 +73,8 @@ t_orderid OrderBook::limit(t_order& order)
                         pPriceLevel->m_head = pCurrOrderEntry;
                         return ++m_current_order_id;
                     }
-                    executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_ask_min, pCurrOrderEntry->m_size);
+                    executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_ask_min,
+                                 pCurrOrderEntry->m_size);
                     order.size -= pCurrOrderEntry->m_size;
                     pCurrOrderEntry->m_size = 0;
                     pCurrOrderEntry = pCurrOrderEntry->m_next;
@@ -114,7 +116,8 @@ t_orderid OrderBook::limit(t_order& order)
                         pPriceLevel->m_head = pCurrOrderEntry;
                         return ++m_current_order_id;
                     }
-                    executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_bid_max, pCurrOrderEntry->m_size);
+                    executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_bid_max,
+                                 pCurrOrderEntry->m_size);
                     order.size -= pCurrOrderEntry->m_size;
                     pCurrOrderEntry->m_size = 0;
                     pCurrOrderEntry = pCurrOrderEntry->m_next;
