@@ -24,12 +24,13 @@ constexpr t_side Ask = 1;
 constexpr t_side Bid = 0;
 
 /* Limit Order */
-typedef struct {
-  char symbol[STRINGLEN];
-  char trader[STRINGLEN];
-  t_side side;
-  t_price price;
-  t_size size;
+typedef struct
+{
+    char symbol[STRINGLEN];
+    char trader[STRINGLEN];
+    t_side side;
+    t_price price;
+    t_size size;
 } t_order;
 
 /* Execution Report

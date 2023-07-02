@@ -1,16 +1,16 @@
 
-#include <sched.h>
-#include <stdio.h>
-#include <time.h>
-#include <math.h>
 #include "../src/OrderBook.h"
 #include "../src/OrderEntry.h"
 #include "score_feed.h"
+#include <math.h>
+#include <sched.h>
+#include <stdio.h>
+#include <time.h>
 
 void feed(unsigned begin, unsigned end);
 long long timediff(struct timespec start, struct timespec end);
-//void print_cpuaffinity();
-//int sched_getaffinity(__pid_t pid, size_t cpusetsize, cpu_set_t *cpuset);
+// void print_cpuaffinity();
+// int sched_getaffinity(__pid_t pid, size_t cpusetsize, cpu_set_t *cpuset);
 
 /* This script provides indicative unofficial score.
    Lowest score wins.
@@ -23,32 +23,36 @@ long long timediff(struct timespec start, struct timespec end);
 
 int msg_batch_size = 10;
 int replays = 200;
-void execution(t_execution exec) {};
+void execution(t_execution exec){};
 
 OrderBook orderbook;
 
-int main() {
-    //print_cpuaffinity();
-    int raw_feed_len = sizeof(raw_feed)/sizeof(t_order);
-    int samples = replays * (raw_feed_len/msg_batch_size);
+int main()
+{
+    // print_cpuaffinity();
+    int raw_feed_len = sizeof(raw_feed) / sizeof(t_order);
+    int samples = replays * (raw_feed_len / msg_batch_size);
     long long late[samples]; // batch latency measurements
 
     struct timespec begin;
     struct timespec end;
 
     int j;
-    for (j = 0; j < replays; j++) {
-    orderbook.init();
-    int i;
-    for (i = msg_batch_size; i < raw_feed_len; i += msg_batch_size) {
-        clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
+    for (j = 0; j < replays; j++)
+    {
+        orderbook.init();
+        int i;
+        for (i = msg_batch_size; i < raw_feed_len; i += msg_batch_size)
+        {
+            clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
 
-        feed(i-msg_batch_size, i);
+            feed(i - msg_batch_size, i);
 
-        clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-        late[i/msg_batch_size - 1 + (j*(raw_feed_len/msg_batch_size))] = timediff(begin, end);
-    }
-    orderbook.destroy();
+            clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+            late[i / msg_batch_size - 1 + (j * (raw_feed_len / msg_batch_size))] =
+                timediff(begin, end);
+        }
+        orderbook.destroy();
     }
 
     long long late_total = 0LL;
@@ -63,7 +67,7 @@ int main() {
     for (i = 0; i < samples; i++)
     {
         late_centered = ((double)late[i]) - late_mean;
-        late_sqtotal += late_centered*late_centered/((double)samples);
+        late_sqtotal += late_centered * late_centered / ((double)samples);
     }
     double late_sd = sqrt(late_sqtotal);
     printf("mean(latency) = %1.2f, sd(latency) = %1.2f\n", late_mean, late_sd);
@@ -72,37 +76,46 @@ int main() {
     printf("You scored %1.2f. Try to minimize this.\n", score);
 }
 
-void feed(unsigned begin, unsigned end) {
-    int i; for(i = begin; i < end; i++) {
-        if (raw_feed[i].price == 0) {
+void feed(unsigned begin, unsigned end)
+{
+    int i;
+    for (i = begin; i < end; i++)
+    {
+        if (raw_feed[i].price == 0)
+        {
             orderbook.cancel(raw_feed[i].size);
-        } else {
+        }
+        else
+        {
             orderbook.limit(raw_feed[i]);
         }
     }
 }
 
-long long timediff(struct timespec start, struct timespec end) {
+long long timediff(struct timespec start, struct timespec end)
+{
     struct timespec temp;
-    if ((end.tv_nsec-start.tv_nsec)<0) {
-        temp.tv_sec = end.tv_sec-start.tv_sec-1;
-        temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
-    } else {
-        temp.tv_sec = end.tv_sec-start.tv_sec;
-        temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+    if ((end.tv_nsec - start.tv_nsec) < 0)
+    {
+        temp.tv_sec = end.tv_sec - start.tv_sec - 1;
+        temp.tv_nsec = 1000000000 + end.tv_nsec - start.tv_nsec;
     }
-    return (temp.tv_sec*1000000000) + temp.tv_nsec;
+    else
+    {
+        temp.tv_sec = end.tv_sec - start.tv_sec;
+        temp.tv_nsec = end.tv_nsec - start.tv_nsec;
+    }
+    return (temp.tv_sec * 1000000000) + temp.tv_nsec;
 }
 
-//void print_cpuaffinity() {
-//  cpu_set_t mask;
-//  CPU_ZERO(&mask);
-//  CPU_SET(0, &mask);
-//  CPU_SET(2, &mask);
-//  unsigned int len = sizeof(mask);
-//  if (sched_getaffinity(0, len, &mask) < 0) {
-//    perror("sched_getaffinity");
-//  }
-//  printf("my affinity mask is: %08lx\n", mask);
-//}
-
+// void print_cpuaffinity() {
+//   cpu_set_t mask;
+//   CPU_ZERO(&mask);
+//   CPU_SET(0, &mask);
+//   CPU_SET(2, &mask);
+//   unsigned int len = sizeof(mask);
+//   if (sched_getaffinity(0, len, &mask) < 0) {
+//     perror("sched_getaffinity");
+//   }
+//   printf("my affinity mask is: %08lx\n", mask);
+// }

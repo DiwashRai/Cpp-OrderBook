@@ -1,8 +1,8 @@
 #ifndef ORDERBOOK_H
 #define ORDERBOOK_H
 
-#include <set>
 #include <array>
+#include <set>
 #include <string>
 
 #include "../quantcup/limits.h"
@@ -12,19 +12,19 @@
 
 class OrderBook
 {
-public:
+  public:
     void init();
     void destroy();
 
     t_orderid limit(t_order& order);
     void cancel(t_orderid orderID);
 
-private:
+  private:
     void executeTrade(const char* symbol,
-                              const char* buyTrader,
-                              const char* sellTrader,
-                              const t_price& tradePrice,
-                              const t_size& tradeSize);
+                      const char* buyTrader,
+                      const char* sellTrader,
+                      const t_price& tradePrice,
+                      const t_size& tradeSize);
     void execution(t_execution exec) const;
 
     t_orderid m_current_order_id = 0;
@@ -34,4 +34,4 @@ private:
     std::array<OrderEntry, 1'010'000> m_orders;
 };
 
-#endif //ORDERBOOK_H
+#endif // ORDERBOOK_H

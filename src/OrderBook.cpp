@@ -17,8 +17,11 @@ void OrderBook::destroy()
 {
 }
 
-void OrderBook::executeTrade(const char* symbol, const char* buyTrader, const char* sellTrader,
-                             const t_price& tradePrice, const t_size& tradeSize)
+void OrderBook::executeTrade(const char* symbol,
+                             const char* buyTrader,
+                             const char* sellTrader,
+                             const t_price& tradePrice,
+                             const t_size& tradeSize)
 {
     if (tradeSize == 0)
         return;
@@ -38,15 +41,17 @@ void OrderBook::executeTrade(const char* symbol, const char* buyTrader, const ch
 }
 
 #ifndef QUANTCUP_TEST
+
 void OrderBook::execution(t_execution exec __attribute__((unused))) const
 {
     /*
     const char* Side = exec.isAsk() ? "BUY " : "SELL";
-    printf("[ORDER EXECUTION]: ID: %lu | Side: %s | Price: $%.2f | Quantity: %ld | Symbol: %s | Trader: %s\n",
-    m_currentExecutionID, Side, exec.getPrice()/100.0, exec.getCurrentQuantity(), exec.getSymbol().cbegin(),
-    exec.getTrader().cbegin());
+    printf("[ORDER EXECUTION]: ID: %lu | Side: %s | Price: $%.2f | Quantity: %ld | Symbol: %s |
+    Trader: %s\n", m_currentExecutionID, Side, exec.getPrice()/100.0, exec.getCurrentQuantity(),
+    exec.getSymbol().cbegin(), exec.getTrader().cbegin());
     */
 }
+
 #endif
 
 t_orderid OrderBook::limit(t_order& order)
@@ -64,7 +69,8 @@ t_orderid OrderBook::limit(t_order& order)
                 {
                     if (pCurrOrderEntry->m_size >= order.size)
                     {
-                        executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_ask_min, order.size);
+                        executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader,
+                                     m_ask_min, order.size);
                         if (pCurrOrderEntry->m_size > order.size)
                             pCurrOrderEntry->m_size -= order.size;
                         else
@@ -107,7 +113,8 @@ t_orderid OrderBook::limit(t_order& order)
                 {
                     if (pCurrOrderEntry->m_size >= order.size)
                     {
-                        executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader, m_bid_max, order.size);
+                        executeTrade(order.symbol, order.trader, pCurrOrderEntry->m_trader,
+                                     m_bid_max, order.size);
                         if (pCurrOrderEntry->m_size > order.size)
                             pCurrOrderEntry->m_size -= order.size;
                         else
